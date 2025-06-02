@@ -56,11 +56,9 @@ const
 
 
 # Android app configuration variables
-const
-  AppLabelName = "rGame"
-  AppIconLdpi = "icon/36x36.png"
-  AppIconMdpi = "icon/48x48.png"
-  AppIconHdpi = "icon/72x72.png"
+type MipmapDpi = enum mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi
+const iconSize = [mdpi: (48, 108), hdpi: (72, 162), xhdpi: (96, 216), xxhdpi: (144, 324), xxxhdpi: (192, 432)]
+const AppLabelName = "rGame"
 
 
 task setupAndroid, "Prepare raylib project for Android development":
@@ -70,23 +68,25 @@ task setupAndroid, "Prepare raylib project for Android development":
 
   # Create required temp directories for APK building
   for cpu in AndroidCPUs: mkDir(ProjectBuildPath / "jniLibs" / cpu.toArchName)
-  mkDir(ProjectBuildPath / "res/drawable-ldpi")
-  mkDir(ProjectBuildPath / "res/drawable-mdpi")
-  mkDir(ProjectBuildPath / "res/drawable-hdpi")
-  mkDir(ProjectBuildPath / "res/drawable-xhdpi")
   mkDir(ProjectBuildPath / "res/values")
   mkDir(ProjectBuildPath / "assets/resources")
   mkDir(ProjectBuildPath / "obj/screens")
   # Copy project required resources: strings.xml, icon.png, assets
   writeFile(ProjectBuildPath / "res/values/strings.xml",
       &"<?xml version='1.0' encoding='utf-8'?>\n<resources><string name='app_name'>{AppLabelName}</string></resources>\n")
-  cpFile(AppIconLdpi, ProjectBuildPath / "res/drawable-ldpi/icon.png")
-  cpFile(AppIconMdpi, ProjectBuildPath / "res/drawable-mdpi/icon.png")
-  cpFile(AppIconHdpi, ProjectBuildPath / "res/drawable-hdpi/icon.png")
   cpDir(ProjectResourcesPath, ProjectBuildPath / "assets/resources")
 
   template fillTemplate(templ, outPath: static string) =
     writeFile(outPath, tmplf(templ, baseDir = getScriptDir()/"android_templates"))
+
+  # launcher icon
+  for size in MipmapDpi:
+    let outDir = ProjectBuildPath / &"res/mipmap-{size}"
+    mkDir(outDir)
+    let pixels = iconSize[size]
+    cpFile(&"icon/{pixels[0]}x{pixels[0]}.png", outDir / "icon.png")
+    cpFile(outDir / "icon.png", outDir / "icon_round.png")
+    cpFile(&"icon/{pixels[1]}x{pixels[1]}.png", outDir / "icon_foreground.png")
 
   # Create android/gradle project files
   fillTemplate("AndroidManifest.xml", ProjectBuildPath / "AndroidManifest.xml")
